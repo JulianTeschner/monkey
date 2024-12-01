@@ -74,21 +74,61 @@ test "Init lexer" {
 }
 
 test "TestNextToken" {
-    const input = "=+(){},;";
+    const input =
+        \\ let five = 5;
+        \\ let ten = 10;
+        \\ let add = fn(x,y) {
+        \\  x + y;
+        \\ };
+        \\
+        \\ let result = add(five, ten);
+    ;
+    std.debug.print("{s}\n", .{input});
 
     const Expected = struct {
         expectedToken: token.Token,
     };
+    const a: token.Token = .{ .ident = "abc" };
+    std.debug.print("{}\n", .{a});
 
     const tests: []const Expected = &.{
-        Expected{ .expectedToken = token.Token.assign },
-        Expected{ .expectedToken = token.Token.plus },
-        Expected{ .expectedToken = token.Token.lparen },
-        Expected{ .expectedToken = token.Token.rparen },
-        Expected{ .expectedToken = token.Token.lbrace },
-        Expected{ .expectedToken = token.Token.rbrace },
-        Expected{ .expectedToken = token.Token.comma },
-        Expected{ .expectedToken = token.Token.semicolon },
+        Expected{ .expectedToken = .let },
+        Expected{ .expectedToken = .{ .ident = "five" } },
+        Expected{ .expectedToken = .assign },
+        Expected{ .expectedToken = .{ .int = 5 } },
+        Expected{ .expectedToken = .semicolon },
+        Expected{ .expectedToken = .let },
+        Expected{ .expectedToken = .{ .ident = "ten" } },
+        Expected{ .expectedToken = .assign },
+        Expected{ .expectedToken = .{ .int = 10 } },
+        Expected{ .expectedToken = .semicolon },
+        Expected{ .expectedToken = .let },
+        Expected{ .expectedToken = .{ .ident = "add" } },
+        Expected{ .expectedToken = .assign },
+        Expected{ .expectedToken = .function },
+
+        Expected{ .expectedToken = .lparen },
+        Expected{ .expectedToken = .{ .ident = "x" } },
+        Expected{ .expectedToken = .comma },
+        Expected{ .expectedToken = .{ .ident = "y" } },
+        Expected{ .expectedToken = .rparen },
+        Expected{ .expectedToken = .lbrace },
+        Expected{ .expectedToken = .{ .ident = "x" } },
+        Expected{ .expectedToken = .plus },
+        Expected{ .expectedToken = .{ .ident = "y" } },
+        Expected{ .expectedToken = .semicolon },
+        Expected{ .expectedToken = .rbrace },
+        Expected{ .expectedToken = .semicolon },
+        Expected{ .expectedToken = .let },
+        Expected{ .expectedToken = .{ .ident = "result" } },
+        Expected{ .expectedToken = .assign },
+        Expected{ .expectedToken = .{ .ident = "add" } },
+        Expected{ .expectedToken = .lparen },
+        Expected{ .expectedToken = .{ .ident = "five" } },
+        Expected{ .expectedToken = .comma },
+        Expected{ .expectedToken = .{ .ident = "ten" } },
+        Expected{ .expectedToken = .rparen },
+        Expected{ .expectedToken = .semicolon },
         Expected{ .expectedToken = token.Token.eof },
     };
 

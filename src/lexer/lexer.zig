@@ -18,7 +18,7 @@ pub const Lexer = struct {
 
     fn readChar(lexer: *Lexer) void {
         if (lexer.readPosition >= lexer.input.len) {
-            lexer.ch = 0;
+            lexer.ch = null;
         } else {
             lexer.ch = lexer.input[lexer.readPosition];
         }
@@ -33,24 +33,39 @@ pub const Lexer = struct {
 
     fn resolveNextToken(self: *Self) token.Token {
         var tok: token.Token = undefined;
+        self.skipWhitespace();
         if (self.charIs('=')) {
-            tok = token.Token.assign;
+            tok = .assign;
         } else if (self.charIs(';')) {
-            tok = token.Token.semicolon;
+            tok = .semicolon;
         } else if (self.charIs('(')) {
-            tok = token.Token.lparen;
+            tok = .lparen;
         } else if (self.charIs(')')) {
-            tok = token.Token.rparen;
+            tok = .rparen;
         } else if (self.charIs(',')) {
-            tok = token.Token.comma;
+            tok = .comma;
         } else if (self.charIs('+')) {
-            tok = token.Token.plus;
+            tok = .plus;
         } else if (self.charIs('{')) {
-            tok = token.Token.lbrace;
+            tok = .lbrace;
         } else if (self.charIs('}')) {
-            tok = token.Token.rbrace;
+            tok = .rbrace;
         } else {
-            tok = token.Token.eof;
+            if (self.ch) |char| {
+                if (isLetter(char)) {
+                    const ident = self.readIdentifier();
+                    tok = lookupIdent(ident);
+                    return tok;
+                } else if (isDigit(char)) {
+                    const number = self.readNumber();
+                    tok = .{ .int = number };
+                    return tok;
+                } else {
+                    tok = .{ .illegal = char };
+                }
+            } else {
+                tok = .eof;
+            }
         }
         self.readChar();
         return tok;
@@ -61,6 +76,57 @@ pub const Lexer = struct {
             return ch == expected;
         } else {
             return false;
+        }
+    }
+
+    fn readIdentifier(self: *Self) []const u8 {
+        const position = self.position;
+        while (isLetter(self.ch.?)) {
+            self.readChar();
+        }
+        return self.input[position..self.position];
+    }
+
+    fn readNumber(self: *Self) []const u8 {
+        const position = self.position;
+        while (isDigit(self.ch.?)) {
+            self.readChar();
+        }
+        return self.input[position..self.position];
+    }
+
+    fn isLetter(ch: u8) bool {
+        return 'a' <= ch and ch <= 'z' or 'A' <= ch and ch <= 'Z' or ch == '_';
+    }
+    fn isDigit(ch: u8) bool {
+        return '0' <= ch and ch <= '9';
+    }
+
+    fn lookupIdent(ident: []const u8) token.Token {
+        if (std.mem.eql(u8, ident, "fn")) {
+            return token.Token.function;
+        } else if (std.mem.eql(u8, ident, "let")) {
+            return token.Token.let;
+        } else if (std.mem.eql(u8, ident, "true")) {
+            return token.Token.true_;
+        } else if (std.mem.eql(u8, ident, "false")) {
+            return token.Token.false_;
+        } else if (std.mem.eql(u8, ident, "if")) {
+            return token.Token.if_;
+        } else if (std.mem.eql(u8, ident, "else")) {
+            return token.Token.else_;
+        } else if (std.mem.eql(u8, ident, "return")) {
+            return token.Token.return_;
+        } else if (std.mem.eql(u8, ident, "macro")) {
+            return token.Token.macro;
+        } else {
+            return token.Token{ .ident = ident };
+        }
+    }
+
+    fn skipWhitespace(self: *Self) void {
+        while (self.ch == ' ' or self.ch == '\t' or self.ch == '\n' or self.ch == '\r') {
+            self.readChar();
         }
     }
 };
@@ -75,32 +141,30 @@ test "Init lexer" {
 
 test "TestNextToken" {
     const input =
-        \\ let five = 5;
-        \\ let ten = 10;
-        \\ let add = fn(x,y) {
+        \\let five = 5;
+        \\let ten = 10;
+        \\let add = fn(x,y) {
         \\  x + y;
-        \\ };
+        \\};
         \\
-        \\ let result = add(five, ten);
+        \\let result = add(five, ten);
     ;
     std.debug.print("{s}\n", .{input});
 
     const Expected = struct {
         expectedToken: token.Token,
     };
-    const a: token.Token = .{ .ident = "abc" };
-    std.debug.print("{}\n", .{a});
 
     const tests: []const Expected = &.{
         Expected{ .expectedToken = .let },
         Expected{ .expectedToken = .{ .ident = "five" } },
         Expected{ .expectedToken = .assign },
-        Expected{ .expectedToken = .{ .int = 5 } },
+        Expected{ .expectedToken = .{ .int = "5" } },
         Expected{ .expectedToken = .semicolon },
         Expected{ .expectedToken = .let },
         Expected{ .expectedToken = .{ .ident = "ten" } },
         Expected{ .expectedToken = .assign },
-        Expected{ .expectedToken = .{ .int = 10 } },
+        Expected{ .expectedToken = .{ .int = "10" } },
         Expected{ .expectedToken = .semicolon },
         Expected{ .expectedToken = .let },
         Expected{ .expectedToken = .{ .ident = "add" } },

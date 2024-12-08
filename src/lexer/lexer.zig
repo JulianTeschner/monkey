@@ -26,6 +26,14 @@ pub const Lexer = struct {
         lexer.readPosition += 1;
     }
 
+    fn peekChar(lexer: *Lexer) ?u8 {
+        if (lexer.readPosition >= lexer.input.len) {
+            return null;
+        } else {
+            return lexer.input[lexer.readPosition];
+        }
+    }
+
     pub fn nextToken(self: *Self) token.Token {
         const parsedToken = self.resolveNextToken();
         return parsedToken;
@@ -35,7 +43,31 @@ pub const Lexer = struct {
         var tok: token.Token = undefined;
         self.skipWhitespace();
         if (self.charIs('=')) {
-            tok = .assign;
+            if (self.peekCharIs('=')) {
+                tok = .equal;
+                self.readChar();
+            } else {
+                tok = .assign;
+            }
+        } else if (self.charIs('+')) {
+            tok = .plus;
+        } else if (self.charIs('-')) {
+            tok = .minus;
+        } else if (self.charIs('!')) {
+            if (self.peekCharIs('=')) {
+                tok = .notEqual;
+                self.readChar();
+            } else {
+                tok = .bang;
+            }
+        } else if (self.charIs('/')) {
+            tok = .slash;
+        } else if (self.charIs('*')) {
+            tok = .asterisk;
+        } else if (self.charIs('<')) {
+            tok = .lt;
+        } else if (self.charIs('>')) {
+            tok = .gt;
         } else if (self.charIs(';')) {
             tok = .semicolon;
         } else if (self.charIs('(')) {
@@ -73,6 +105,13 @@ pub const Lexer = struct {
 
     fn charIs(self: *Self, expected: u8) bool {
         if (self.ch) |ch| {
+            return ch == expected;
+        } else {
+            return false;
+        }
+    }
+    fn peekCharIs(self: *Self, expected: u8) bool {
+        if (self.peekChar()) |ch| {
             return ch == expected;
         } else {
             return false;
@@ -148,6 +187,17 @@ test "TestNextToken" {
         \\};
         \\
         \\let result = add(five, ten);
+        \\!-/*5;
+        \\5 < 10 > 5;
+        \\
+        \\if (5 < 10) {
+        \\  return true;
+        \\} else {
+        \\  return false;
+        \\}
+        \\
+        \\10 == 10;
+        \\10 != 9;
     ;
     std.debug.print("{s}\n", .{input});
 
@@ -193,7 +243,45 @@ test "TestNextToken" {
         Expected{ .expectedToken = .{ .ident = "ten" } },
         Expected{ .expectedToken = .rparen },
         Expected{ .expectedToken = .semicolon },
-        Expected{ .expectedToken = token.Token.eof },
+
+        Expected{ .expectedToken = .bang },
+        Expected{ .expectedToken = .minus },
+        Expected{ .expectedToken = .slash },
+        Expected{ .expectedToken = .asterisk },
+        Expected{ .expectedToken = .{ .int = "5" } },
+        Expected{ .expectedToken = .semicolon },
+        Expected{ .expectedToken = .{ .int = "5" } },
+        Expected{ .expectedToken = .lt },
+        Expected{ .expectedToken = .{ .int = "10" } },
+        Expected{ .expectedToken = .gt },
+        Expected{ .expectedToken = .{ .int = "5" } },
+        Expected{ .expectedToken = .semicolon },
+        Expected{ .expectedToken = .if_ },
+        Expected{ .expectedToken = .lparen },
+        Expected{ .expectedToken = .{ .int = "5" } },
+        Expected{ .expectedToken = .lt },
+        Expected{ .expectedToken = .{ .int = "10" } },
+        Expected{ .expectedToken = .rparen },
+        Expected{ .expectedToken = .lbrace },
+        Expected{ .expectedToken = .return_ },
+        Expected{ .expectedToken = .true_ },
+        Expected{ .expectedToken = .semicolon },
+        Expected{ .expectedToken = .rbrace },
+        Expected{ .expectedToken = .else_ },
+        Expected{ .expectedToken = .lbrace },
+        Expected{ .expectedToken = .return_ },
+        Expected{ .expectedToken = .false_ },
+        Expected{ .expectedToken = .semicolon },
+        Expected{ .expectedToken = .rbrace },
+        Expected{ .expectedToken = .{ .int = "10" } },
+        Expected{ .expectedToken = .equal },
+        Expected{ .expectedToken = .{ .int = "10" } },
+        Expected{ .expectedToken = .semicolon },
+        Expected{ .expectedToken = .{ .int = "10" } },
+        Expected{ .expectedToken = .notEqual },
+        Expected{ .expectedToken = .{ .int = "9" } },
+        Expected{ .expectedToken = .semicolon },
+        Expected{ .expectedToken = .eof },
     };
 
     var lex = Lexer.init(input);

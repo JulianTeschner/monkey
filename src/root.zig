@@ -3,7 +3,7 @@
 //! start with main.zig instead.
 const std = @import("std");
 const testing = std.testing;
-const token = @import("./token/token.zig");
+const token = @import("./lexer/token.zig");
 const lexer = @import("./lexer/lexer.zig");
 
 export fn add(a: i32, b: i32) i32 {

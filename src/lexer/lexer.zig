@@ -9,7 +9,7 @@ pub const Lexer = struct {
 
     const Self = @This();
 
-    fn init(input: [:0]const u8) Lexer {
+    pub fn init(input: []const u8) Lexer {
         var lexer = Lexer{ .input = input, .position = 0, .readPosition = 0, .ch = null };
         lexer.readChar();
 
@@ -120,16 +120,24 @@ pub const Lexer = struct {
 
     fn readIdentifier(self: *Self) []const u8 {
         const position = self.position;
-        while (isLetter(self.ch.?)) {
-            self.readChar();
+        while (self.ch) |char| {
+            if (isLetter(char)) {
+                self.readChar();
+            } else {
+                break;
+            }
         }
         return self.input[position..self.position];
     }
 
     fn readNumber(self: *Self) []const u8 {
         const position = self.position;
-        while (isDigit(self.ch.?)) {
-            self.readChar();
+        while (self.ch) |digit| {
+            if (isDigit(digit)) {
+                self.readChar();
+            } else {
+                break;
+            }
         }
         return self.input[position..self.position];
     }
